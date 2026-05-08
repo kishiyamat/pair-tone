@@ -31,19 +31,17 @@ class TestAccentKanaToSsml:
     def test_slash_produces_no_pause(self) -> None:
         # "/" はアクセント句境界のみ。Polly に break を挿入しない
         ssml = accent_kana_to_ssml("メジロ'/ダイニ'")
-        assert '<break time="200ms"/>' not in ssml
         assert "<break" not in ssml
-        # phoneme タグは 2 つ並ぶ
         assert ssml.count("<phoneme") == 2
 
     def test_comma_produces_long_pause(self) -> None:
         ssml = accent_kana_to_ssml("メジロ'、ダイニ'")
-        assert '<break time="500ms"/>' in ssml
+        assert '<break time="300ms"/>' in ssml
 
     def test_multiple_phrases(self) -> None:
         ssml = accent_kana_to_ssml("シュウマツニ'/メジロ'ダイニ/デカケタ'")
         assert ssml.count("<phoneme") == 3
-        # "/" はbreak なし、breakタグは 0 個
+        # "/" はbreak なし
         assert "<break" not in ssml
 
     def test_underscore_stripped_from_ph(self) -> None:

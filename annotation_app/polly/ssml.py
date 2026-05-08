@@ -45,7 +45,7 @@ def accent_kana_to_ssml(accent_kana: str) -> str:
         if i < len(separators):
             sep = separators[i]
             if sep == "、":
-                fragments.append('<break time="500ms"/>')
+                fragments.append('<break time="300ms"/>')
             # "/" はポーズなし: phoneme タグを並べるだけ
 
     inner = "".join(fragments)
