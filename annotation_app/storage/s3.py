@@ -45,14 +45,39 @@ class S3Storage:
 
     # ── マニフェスト ────────────────────────────────────────────
 
+    def _list_manifest_keys(self) -> list[str]:
+        """manifests/ 配下の全 .jsonl キーを列挙する."""
+        list_prefix = self._key("manifests/")
+        keys: list[str] = []
+        paginator = self._s3.get_paginator("list_objects_v2")
+        for page in paginator.paginate(Bucket=self._bucket, Prefix=list_prefix):
+            for obj in page.get("Contents", []):
+                key: str = obj["Key"]
+                if key.endswith(".jsonl"):
+                    keys.append(key)
+        return sorted(keys)
+
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=4))
-    def load_manifests(self) -> list[PairManifest]:
-        """manifests/pair_manifest.jsonl を読み込んで返す."""
-        key = self._key("manifests/pair_manifest.jsonl")
+    def _load_jsonl(self, key: str) -> list[PairManifest]:
+        """S3 上の JSONL ファイルを読み込んで PairManifest のリストを返す."""
         obj = self._s3.get_object(Bucket=self._bucket, Key=key)
         body: str = obj["Body"].read().decode("utf-8")
         records = [json.loads(line) for line in body.splitlines() if line.strip()]
         return [PairManifest.model_validate(r) for r in records]
+
+    def load_manifests(self) -> list[PairManifest]:
+        """manifests/ 配下の全 JSONL を読み込んで返す.
+
+        pair_manifest.jsonl と retry01/pair_manifest.jsonl など
+        複数ファイルが存在する場合もすべて結合して返す。
+        pair_id が重複する場合は後から読んだものを優先する。
+        """
+        keys = self._list_manifest_keys()
+        seen: dict[str, PairManifest] = {}
+        for key in keys:
+            for manifest in self._load_jsonl(key):
+                seen[manifest.pair_id] = manifest
+        return list(seen.values())
 
     # ── アノテーション保存 ───────────────────────────────────────
 
