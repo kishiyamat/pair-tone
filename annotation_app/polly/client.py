@@ -22,12 +22,12 @@ class PollyClient:
     def synthesize(
         self,
         accent_kana: str,
-        voice_id: str = "Mizuki",
+        voice_id: str = "Takumi",
     ) -> bytes:
         """accent_kana から MP3 音声バイト列を生成する."""
         ssml = accent_kana_to_ssml(accent_kana)
         response = self._client.synthesize_speech(
-            Engine="standard",
+            Engine="neural",
             LanguageCode="ja-JP",
             OutputFormat="mp3",
             Text=ssml,

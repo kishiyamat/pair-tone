@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
-from annotation_app.polly.ssml import _phrase_to_ph, _phrase_to_text, accent_kana_to_ssml
+from annotation_app.polly.ssml import (
+    _phrase_to_ph,
+    _phrase_to_text,
+    accent_kana_to_ssml,
+    long_clause_warnings,
+)
 
 
 class TestPhraseToPhAndText:
@@ -67,7 +72,7 @@ class TestAccentKanaToSsml:
         assert result == expected
 
     def test_slash_splits_into_separate_phonemes(self) -> None:
-        # "/" で分割 → 別々の phoneme タグ（空白なし）
+        # "/" で分割 → 別々の phoneme タグ（連結、空白なし）
         # 末尾 ' は 0型マーカーなので ph 属性から除去
         input_kana = "メジロ'/ダイニ'"
         expected = (
@@ -80,13 +85,13 @@ class TestAccentKanaToSsml:
         assert result == expected
 
     def test_comma_splits_into_two_phonemes_with_break(self) -> None:
-        # "、" は phoneme を分割し 150ms break を挿入
+        # "、" は phoneme を分割し 100ms break を挿入
         # 末尾 ' は 0型マーカーなので ph から除去
         input_kana = "メジロ'、ダイニ'"
         expected = (
             '<speak><lang xml:lang="ja-JP">'
             '<phoneme alphabet="x-amazon-pron-kana" ph="メジロ">メジロ</phoneme>'
-            '<break time="150ms"/>'
+            '<break time="100ms"/>'
             '<phoneme alphabet="x-amazon-pron-kana" ph="ダイニ">ダイニ</phoneme>'
             '</lang></speak>'
         )
@@ -118,9 +123,9 @@ class TestAccentKanaToSsml:
         expected = (
             '<speak><lang xml:lang="ja-JP">'
             '<phoneme alphabet="x-amazon-pron-kana" ph="シュウマツニ">シュウマツニ</phoneme>'
-            '<break time="150ms"/>'
+            '<break time="100ms"/>'
             '<phoneme alphabet="x-amazon-pron-kana" ph="メジロ\'ダイニ">メジロダイニ</phoneme>'
-            '<break time="150ms"/>'
+            '<break time="100ms"/>'
             '<phoneme alphabet="x-amazon-pron-kana" ph="デカケタ">デカケタ</phoneme>'
             '</lang></speak>'
         )
@@ -128,13 +133,13 @@ class TestAccentKanaToSsml:
         assert result == expected
 
     def test_slash_and_comma_combined(self) -> None:
-        # / → 途中空白なしの別 phoneme、、→ break
+        # / → 別の phoneme、、→ <break time="100ms"/>
         input_kana = "ア'_クションニ/ツ'イテ、ハナ'_シテ"
         expected = (
             '<speak><lang xml:lang="ja-JP">'
             '<phoneme alphabet="x-amazon-pron-kana" ph="ア\'クションニ">アクションニ</phoneme>'
             '<phoneme alphabet="x-amazon-pron-kana" ph="ツ\'イテ">ツイテ</phoneme>'
-            '<break time="150ms"/>'
+            '<break time="100ms"/>'
             '<phoneme alphabet="x-amazon-pron-kana" ph="ハナ\'シテ">ハナシテ</phoneme>'
             '</lang></speak>'
         )
@@ -146,4 +151,35 @@ class TestAccentKanaToSsml:
         expected = '<speak><lang xml:lang="ja-JP"></lang></speak>'
         result = accent_kana_to_ssml(input_kana)
         assert result == expected
+
+
+class TestLongClauseWarnings:
+    def test_no_warning_below_threshold(self) -> None:
+        # 5 フレーズは閾値未満 → 警告なし
+        kana = "ア'/イ'/ウ'/エ'/オ'"
+        assert long_clause_warnings(kana) == []
+
+    def test_warning_at_threshold(self) -> None:
+        # 6 フレーズ = 閾値以上 → 警告あり
+        kana = "ア'/イ'/ウ'/エ'/オ'/カ'"
+        warnings = long_clause_warnings(kana)
+        assert len(warnings) == 1
+        assert "6" in warnings[0]
+        assert "、" in warnings[0]
+
+    def test_warning_above_threshold(self) -> None:
+        # 6 フレーズ → 警告あり
+        kana = "ハゲシ'イ/カクトオシ'インヤ/ハデ'ナ/バクハツノ'/エンシュツオ'/フリカエリナ'ガラ"
+        warnings = long_clause_warnings(kana)
+        assert len(warnings) == 1
+        assert "6" in warnings[0]
+
+    def test_warning_only_for_long_clause(self) -> None:
+        # 、で区切られた場合、長い節にのみ警告
+        kana = "ア'/イ'/ウ'、カギ/クケ/コサ/タチ'/ツテ'/ナニ'"
+        warnings = long_clause_warnings(kana)
+        assert len(warnings) == 1  # 2節目（6フレーズ）のみ
+
+    def test_no_warning_for_empty(self) -> None:
+        assert long_clause_warnings("") == []
 

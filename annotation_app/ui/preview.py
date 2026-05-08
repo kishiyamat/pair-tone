@@ -9,6 +9,7 @@ from __future__ import annotations
 import streamlit as st
 
 from annotation_app.polly.client import PollyClient
+from annotation_app.polly.ssml import long_clause_warnings
 
 # session_state のキー: "polly_cache" -> dict[key_suffix, (accent_kana, audio_bytes)]
 _CACHE_KEY = "polly_cache"
@@ -33,6 +34,9 @@ def render_audio(
 
     if not accent_kana.strip():
         return False
+
+    for msg in long_clause_warnings(accent_kana):
+        st.warning(msg)
 
     cached = cache.get(key_suffix)
     if cached is None or cached[0] != accent_kana:
