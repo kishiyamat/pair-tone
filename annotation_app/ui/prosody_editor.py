@@ -2,11 +2,32 @@
 
 from __future__ import annotations
 
+import re
+
 import streamlit as st
 
 from annotation_app.schemas.annotation import ItemAnnotation, PairAnnotation
 from annotation_app.schemas.manifest import ManifestItem, PairManifest
 from annotation_app.ui.preview import render_audio
+
+_PHRASE_SEP_RE = re.compile(r"[/、]")
+
+
+def _validate_accent_kana(accent_kana: str) -> list[str]:
+    """各フレーズに ' がちょうど 1 つあるか検証する. エラーメッセージのリストを返す."""
+    if not accent_kana.strip():
+        return []
+    errors: list[str] = []
+    for phrase in _PHRASE_SEP_RE.split(accent_kana):
+        phrase = phrase.strip()
+        if not phrase:
+            continue
+        count = phrase.count("'")
+        if count == 0:
+            errors.append(f"`{phrase}` にアクセント核 `'` がありません")
+        elif count > 1:
+            errors.append(f"`{phrase}` に `'` が {count} 個あります（1 個だけにしてください）")
+    return errors
 
 
 def render() -> None:
@@ -60,6 +81,22 @@ def render() -> None:
 | 固有名詞・数字の読みが誤っている | 読みをカナで修正 |
 
 **ポイント:** 頭高型の特徴が埋もれる場合は `、` で前後から切り離すと聞き取りやすくなります。
+
+---
+
+#### `/` の追加・削除 ― ひとまとまりで読んでほしいとき
+
+`/` で区切るとそれぞれ別のアクセントフレーズとして処理され、境界で読み方が変わることがあります。  
+前後の語と**一体のまとまりとして読んでほしい場合は `/` を消して結合**します。
+
+> **例:** 「さっきまでみんなでアクションについて話していた」  
+> 修正前: `サ'ッキマデ/ミナ'デ、ア'_クションニ/'ツイテ/ハナ'_シテ/イタ'`  
+> 修正後: `サ'ッキマデ/ミナ'デ、ア'_クションニツイテ/ハナ'_シテ/イタ'`  
+>  
+> `/'ツイテ` を独立したフレーズにすると「ツイテ」で読みが切れます。  
+> 「アクションニツイテ」でひとまとまりなので `/` を削除してひとつのフレーズにまとめます。
+
+**注意:** `/` や `、` で区切られた各フレーズには **`'` がちょうど 1 つ**必要です（入力後に自動チェックします）。
 """
         )
     st.divider()
@@ -76,14 +113,9 @@ def render() -> None:
         with st.expander(label, expanded=True):
             st.markdown(f"**文:** {item_ann.sentence}")
 
-            # 参照用: openjtalk_kana と corrected_kana を並べて表示
+            # OpenJTalk の原文読みを参照用に表示（corrected_kana は accent_kana の初期値として反映済み）
             if m_item:
                 st.caption(f"OpenJTalk: `{m_item.openjtalk_kana}`")
-                if (
-                    m_item.corrected_kana
-                    and m_item.corrected_kana != m_item.openjtalk_kana
-                ):
-                    st.caption(f"corrected:  `{m_item.corrected_kana}`")
 
             accent_kana: str = st.text_input(
                 "accent_kana",
@@ -95,6 +127,12 @@ def render() -> None:
             if not accent_kana.strip():
                 st.warning("入力してください。")
                 all_filled = False
+            else:
+                phrase_errors = _validate_accent_kana(accent_kana)
+                if phrase_errors:
+                    for err in phrase_errors:
+                        st.warning(f"⚠ {err}")
+                    all_filled = False
 
             col_check, col_notes = st.columns([1, 3])
             with col_check:
