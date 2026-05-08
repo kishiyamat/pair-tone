@@ -36,7 +36,7 @@ class TestAccentKanaToSsml:
 
     def test_comma_produces_long_pause(self) -> None:
         ssml = accent_kana_to_ssml("メジロ'、ダイニ'")
-        assert '<break time="300ms"/>' in ssml
+        assert '<break time="150ms"/>' in ssml
 
     def test_multiple_phrases(self) -> None:
         ssml = accent_kana_to_ssml("シュウマツニ'/メジロ'ダイニ/デカケタ'")
