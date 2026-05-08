@@ -18,9 +18,10 @@ class TestPhraseToPhAndText:
         result = _phrase_to_ph(input_phrase)
         assert result == expected
 
-    def test_ph_keeps_slash(self) -> None:
+    def test_ph_strips_slash(self) -> None:
+        # Polly の x-amazon-pron-kana は / を認識しないので除去する
         input_phrase = "メジロ'/ダイニ'"
-        expected = "メジロ'/ダイニ'"
+        expected = "メジロ'ダイニ'"
         result = _phrase_to_ph(input_phrase)
         assert result == expected
 
@@ -57,9 +58,9 @@ class TestAccentKanaToSsml:
         assert result == expected
 
     def test_slash_merges_into_single_phoneme(self) -> None:
-        # "/" は break なし・単一 phoneme タグ
+        # "/" は break なし・単一 phoneme タグ、ph 属性から / を除去して ' は保持
         input_kana = "メジロ'/ダイニ'"
-        expected = '<speak><lang xml:lang="ja-JP"><phoneme alphabet="x-amazon-pron-kana" ph="メジロ\'/ダイニ\'">メジロダイニ</phoneme></lang></speak>'
+        expected = '<speak><lang xml:lang="ja-JP"><phoneme alphabet="x-amazon-pron-kana" ph="メジロ\'\u30c0イニ\'">メジロダイニ</phoneme></lang></speak>'
         result = accent_kana_to_ssml(input_kana)
         assert result == expected
 
@@ -83,8 +84,9 @@ class TestAccentKanaToSsml:
         assert result == expected
 
     def test_multiple_slashes_single_phoneme(self) -> None:
+        # / を除去して ' を保ったまま 1 つの phoneme タグ
         input_kana = "シュウマツニ'/メジロ'ダイニ/デカケタ'"
-        expected = '<speak><lang xml:lang="ja-JP"><phoneme alphabet="x-amazon-pron-kana" ph="シュウマツニ\'/メジロ\'ダイニ/デカケタ\'">シュウマツニメジロダイニデカケタ</phoneme></lang></speak>'
+        expected = '<speak><lang xml:lang="ja-JP"><phoneme alphabet="x-amazon-pron-kana" ph="シュウマツニ\'メジロ\'ダイニデカケタ\'">シュウマツニメジロダイニデカケタ</phoneme></lang></speak>'
         result = accent_kana_to_ssml(input_kana)
         assert result == expected
 
@@ -106,7 +108,7 @@ class TestAccentKanaToSsml:
         input_kana = "ア'_クションニ/ツ'イテ、ハナ'_シテ"
         expected = (
             '<speak><lang xml:lang="ja-JP">'
-            '<phoneme alphabet="x-amazon-pron-kana" ph="ア\'クションニ/ツ\'イテ">アクションニツイテ</phoneme>'
+            '<phoneme alphabet="x-amazon-pron-kana" ph="ア\'クションニツ\'イテ">アクションニツイテ</phoneme>'
             '<break time="150ms"/>'
             '<phoneme alphabet="x-amazon-pron-kana" ph="ハナ\'シテ">ハナシテ</phoneme>'
             '</lang></speak>'

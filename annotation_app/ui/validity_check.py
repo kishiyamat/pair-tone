@@ -72,19 +72,15 @@ def render() -> None:
             placeholder="例: 「目白」の例文で鳥と地名が混在している / アルファベット略語が含まれる",
         )
 
-    col1, col2 = st.columns([1, 5])
-    with col1:
-        pass  # タブで自由に移動できるため「戻る」ボタンは不要
-    with col2:
-        next_label = "確定してアクセント編集へ" if is_valid_label == "有効" else "無効として確定"
-        if st.button(next_label, type="primary"):
-            if is_valid_label == "無効" and not invalid_reason.strip():
-                st.error("無効の場合は理由を入力してください。")
-                return
+    next_label = "確定してアクセント編集へ" if is_valid_label == "有効" else "無効として確定"
+    if st.button(next_label, type="primary"):
+        if is_valid_label == "無効" and not invalid_reason.strip():
+            st.error("無効の場合は理由を入力してください。")
+            return
 
-            annotation.pair_is_valid = is_valid_label == "有効"
-            annotation.pair_invalid_reason = (
-                invalid_reason.strip() if is_valid_label == "無効" else None
-            )
-            st.session_state.annotation = annotation
-            st.info("確定しました。**「2. アクセント編集」**タブに進んでください。")
+        annotation.pair_is_valid = is_valid_label == "有効"
+        annotation.pair_invalid_reason = (
+            invalid_reason.strip() if is_valid_label == "無効" else None
+        )
+        st.session_state.annotation = annotation
+        st.info("確定しました。 **「2. アクセント編集」** タブに進んでください。")

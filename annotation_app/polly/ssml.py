@@ -5,13 +5,16 @@ from __future__ import annotations
 import re
 from xml.sax.saxutils import escape
 
-# 、のみで節を分割する。/ は節内のアクセント句境界として ph 属性にそのまま渡す。
+# 、のみで節を分割する。/ は accent phrase boundary だが Polly の ph 属性では不要なので除去する。
 _CLAUSE_SEP_RE = re.compile(r"、")
 
 
 def _phrase_to_ph(phrase: str) -> str:
-    """ph 属性用: _ (無声化マーク) を除去、' と / はそのまま保持."""
-    return phrase.replace("_", "")
+    """ph 属性用: _ (無声化マーク) と / (アクセント句境界) を除去、' はそのまま保持.
+
+    Polly の x-amazon-pron-kana は / を認識しないため、/ が残ると phoneme 要素全体が無視される。
+    """
+    return phrase.replace("_", "").replace("/", "")
 
 
 def _phrase_to_text(phrase: str) -> str:
