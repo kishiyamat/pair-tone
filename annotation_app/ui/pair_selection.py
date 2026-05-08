@@ -83,10 +83,22 @@ def render() -> None:
     annotation = st.session_state.get("annotation")
     manifest_loaded: PairManifest | None = st.session_state.get("pair_manifest")
     if annotation is not None and manifest_loaded is not None:
-        st.success(
-            f"✅ **{manifest_loaded.word_a} / {manifest_loaded.word_b}** を開始しました。  \n"
-            "上の **「2. 有効性チェック」** タブに進んでください。"
-        )
+        load_state = st.session_state.get("pair_load_state", "new")
+        if load_state == "completed":
+            st.info(
+                f"✅ **{manifest_loaded.word_a} / {manifest_loaded.word_b}** はすでに完了しています。  \n"
+                "再提出する場合は、そのまま進めてください。"
+            )
+        elif load_state == "draft":
+            st.info(
+                f"✅ **{manifest_loaded.word_a} / {manifest_loaded.word_b}** の下書きを再開しました。  \n"
+                "上の **「2. 有効性チェック」** タブに進んでください。"
+            )
+        else:
+            st.success(
+                f"✅ **{manifest_loaded.word_a} / {manifest_loaded.word_b}** を開始しました。  \n"
+                "上の **「2. 有効性チェック」** タブに進んでください。"
+            )
 
     if not submitted:
         return
@@ -123,6 +135,7 @@ def _start_or_resume(worker_id: str, manifest: PairManifest) -> None:
         st.session_state.pair_manifest = manifest
         st.session_state.annotation = existing
         st.session_state.worker_id = worker_id
+        st.session_state.pair_load_state = existing.status
         st.info(f"リビジョン {existing.revision} を再開します。")
     else:
         _start_new(worker_id, manifest)
@@ -168,4 +181,5 @@ def _start_new(worker_id: str, manifest: PairManifest) -> None:
     st.session_state.pair_manifest = manifest
     st.session_state.annotation = annotation
     st.session_state.started_at = now
+    st.session_state.pair_load_state = "new"
     st.rerun()

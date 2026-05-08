@@ -24,3 +24,9 @@ class TestValidateAccentKana:
         errors = _validate_accent_kana("ハナ' ガ")
 
         assert "空白は使えません: `ハナ'[space]ガ` -> `ハナ'ガ`" in errors
+
+    def test_warns_for_invalid_comma_chars(self) -> None:
+        errors = _validate_accent_kana("ハナ'ガ,ハナ'ガ，ハナ'ガ")
+
+        assert "`,` は使えません。句切りには `、` を使ってください" in errors
+        assert "`，` は使えません。句切りには `、` を使ってください" in errors

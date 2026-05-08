@@ -12,6 +12,7 @@ from annotation_app.ui.preview import render_audio
 
 _PHRASE_SEP_RE = re.compile(r"[/、]")
 _INVALID_QUOTE_CHARS = ("’", "”", '"', "´", "`")
+_INVALID_PUNCTUATION = {",": "、", "，": "、"}
 
 
 def _visualize_whitespace(text: str) -> str:
@@ -40,6 +41,11 @@ def _invalid_quote_warnings(accent_kana: str) -> list[str]:
         if ch in accent_kana:
             warnings.append(
                 f"`{ch}` は使えません。アクセント核は ASCII の `'` を使ってください"
+            )
+    for ch, replacement in _INVALID_PUNCTUATION.items():
+        if ch in accent_kana:
+            warnings.append(
+                f"`{ch}` は使えません。句切りには `{replacement}` を使ってください"
             )
     if any(ch.isspace() for ch in accent_kana):
         visible = _visualize_whitespace(accent_kana)
