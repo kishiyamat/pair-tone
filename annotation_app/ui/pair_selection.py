@@ -14,7 +14,7 @@ from annotation_app.storage.s3 import S3Storage
 
 
 def render() -> None:
-    st.title("0. ペア選択")
+    st.title("1. ペア選択")
     st.markdown(
         "**作業の流れ:**  \n"
         "1. Worker ID とアノテーション対象のペア ID を入力してください。  \n"
@@ -49,13 +49,40 @@ def render() -> None:
         )
         submitted = st.form_submit_button("開始", type="primary")
 
+    # ── Worker ID が入力されていれば実績サマリーを表示 ────────
+    display_worker_id = st.session_state.get("worker_id", os.environ.get("WORKER_ID", ""))
+    if display_worker_id:
+        try:
+            import pandas as pd
+            storage = S3Storage()
+            worker_anns = storage.list_worker_annotations(display_worker_id)
+            total = len(manifests)
+            done = sum(1 for a in worker_anns if a.status == "completed")
+            st.info(
+                f"**{display_worker_id}** 様の実績: "
+                f"完了 **{done}** 件（全 {total} ペア中）"
+            )
+            if worker_anns:
+                rows = [
+                    {
+                        "ペア ID": a.pair_id,
+                        "状態": "完了" if a.status == "completed" else "下書き",
+                        "有効性": ("有効" if a.pair_is_valid else "無効") if a.pair_is_valid is not None else "—",
+                        "最終更新": a.updated_at.strftime("%m/%d %H:%M"),
+                    }
+                    for a in worker_anns
+                ]
+                st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+        except Exception:
+            pass
+
     # ── 開始済みの場合: 現在のペアをアナウンス ────────────────
     annotation = st.session_state.get("annotation")
     manifest_loaded: PairManifest | None = st.session_state.get("pair_manifest")
     if annotation is not None and manifest_loaded is not None:
         st.success(
             f"✅ **{manifest_loaded.word_a} / {manifest_loaded.word_b}** を開始しました。  \n"
-            "上の **「1. 有効性チェック」** タブに進んでください。"
+            "上の **「2. 有効性チェック」** タブに進んでください。"
         )
 
     if not submitted:
@@ -96,6 +123,11 @@ def _start_or_resume(worker_id: str, manifest: PairManifest) -> None:
         st.info(f"リビジョン {existing.revision} を再開します。")
     else:
         _start_new(worker_id, manifest)
+
+    # 前のペアのウィジェット状態をクリアして新しい accent_kana が反映されるようにする
+    for key in list(st.session_state.keys()):
+        if key.startswith(("accent_", "natural_", "notes_")):
+            del st.session_state[key]
 
     st.rerun()
 

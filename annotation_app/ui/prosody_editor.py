@@ -31,13 +31,13 @@ def _validate_accent_kana(accent_kana: str) -> list[str]:
 
 
 def render() -> None:
-    st.title("2. アクセント編集")
+    st.title("3. アクセント編集")
 
     manifest: PairManifest | None = st.session_state.get("pair_manifest")
     annotation: PairAnnotation | None = st.session_state.get("annotation")
 
     if manifest is None or annotation is None:
-        st.info("「0. ペア選択」タブでペアを選択してください。")
+        st.info("「1. ペア選択」タブでペアを選択してください。")
         return
 
     st.subheader(f"ペア: {manifest.pair_id}")
@@ -108,7 +108,7 @@ def render() -> None:
 
     for idx, item_ann in enumerate(annotation.items):
         m_item = manifest_map.get(item_ann.item_id)
-        label = f"[{item_ann.condition_id}] {item_ann.target_word} — {item_ann.sentence[:40]}…"
+        label = f"[{item_ann.condition_id}] {item_ann.target_word} — {item_ann.sentence[:40]}{'…' if len(item_ann.sentence) > 40 else ''}"
 
         with st.expander(label, expanded=True):
             st.markdown(f"**文:** {item_ann.sentence}")
@@ -171,4 +171,4 @@ def render() -> None:
 
     st.divider()
     if not all_filled:
-        st.warning("入力が完了していないフレーズがあります。全て入力完了後に「3. 保存・提出」タブから提出してください。")
+        st.warning("入力が完了していないフレーズがあります。全て入力完了後に下の「保存・提出」から提出してください。")

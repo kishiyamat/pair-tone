@@ -16,7 +16,7 @@ def render() -> None:
         st.error("アノテーションが見つかりません。")
         return
 
-    st.title("3. 保存・提出")
+    st.subheader("保存・提出")
     st.subheader(f"ペア: {annotation.pair_id}")
 
     # サマリー表示
@@ -33,26 +33,25 @@ def render() -> None:
 
     st.divider()
 
-    col_draft, col_submit = st.columns([1, 4])
-    with col_draft:
-        if st.button("下書き保存"):
-            _save(annotation, submit=False)
-    with col_submit:
-        if st.button("提出する", type="primary"):
-            _save(annotation, submit=True)
+    if st.button("提出する", type="primary"):
+        _save(annotation)
+
+    # 保存結果メッセージ
+    if msg := st.session_state.pop("_save_message", None):
+        kind, text = msg
+        if kind == "info":
+            st.info(text)
+        elif kind == "error":
+            st.error(text)
 
 
-def _save(annotation: PairAnnotation, *, submit: bool) -> None:
+def _save(annotation: PairAnnotation) -> None:
     now = datetime.now(timezone.utc)
     started: datetime = st.session_state.get("started_at", annotation.started_at)
     annotation.updated_at = now
     annotation.elapsed_sec = int((now - started).total_seconds())
-
-    if submit:
-        annotation.status = "completed"
-        annotation.submitted_at = now
-    else:
-        annotation.status = "draft"
+    annotation.status = "completed"
+    annotation.submitted_at = now
 
     st.session_state.annotation = annotation
 
@@ -60,12 +59,8 @@ def _save(annotation: PairAnnotation, *, submit: bool) -> None:
         try:
             storage = S3Storage()
             key = storage.save_annotation(annotation)
-            if submit:
-                storage.write_latest(annotation)
-            if submit:
-                st.info(f"提出が完了しました。(`{key}`)")
-                st.balloons()
-            else:
-                st.info(f"下書きを保存しました。(`{key}`)")
+            storage.write_latest(annotation)
+            st.session_state["_save_message"] = ("info", f"提出が完了しました。(`{key}`)")
+            st.balloons()
         except Exception as e:
-            st.error(f"保存に失敗しました: {e}")
+            st.session_state["_save_message"] = ("error", f"保存に失敗しました: {e}")

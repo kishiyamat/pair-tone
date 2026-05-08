@@ -39,22 +39,20 @@ from annotation_app.ui import (  # noqa: E402
     validity_check,
 )
 
-tab0, tab1, tab2, tab3 = st.tabs([
-    "0. ペア選択",
-    "1. 有効性チェック",
-    "2. アクセント編集",
-    "3. 保存・提出",
+tab1, tab2, tab3 = st.tabs([
+    "1. ペア選択",
+    "2. 有効性チェック",
+    "3. アクセント編集",
 ])
 
-with tab0:
+with tab1:
     pair_selection.render()
 
-with tab1:
+with tab2:
     validity_check.render()
 
-with tab2:
-    prosody_editor.render()
-
 with tab3:
+    prosody_editor.render()
+    st.divider()
     save_submit.render()
 

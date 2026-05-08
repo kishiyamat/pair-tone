@@ -9,13 +9,13 @@ from annotation_app.schemas.manifest import PairManifest
 
 
 def render() -> None:
-    st.title("1. ペア有効性チェック")
+    st.title("2. ペア有効性チェック")
 
     manifest: PairManifest | None = st.session_state.get("pair_manifest")
     annotation: PairAnnotation | None = st.session_state.get("annotation")
 
     if manifest is None or annotation is None:
-        st.info("「0. ペア選択」タブでペアを選択してください。")
+        st.info("「1. ペア選択」タブでペアを選択してください。")
         return
 
     st.subheader(f"ペア: {manifest.pair_id}")
@@ -83,4 +83,4 @@ def render() -> None:
             invalid_reason.strip() if is_valid_label == "無効" else None
         )
         st.session_state.annotation = annotation
-        st.info("確定しました。 **「2. アクセント編集」** タブに進んでください。")
+        st.info("確定しました。 **「3. アクセント編集」** タブに進んでください。")
