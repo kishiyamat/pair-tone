@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import streamlit as st
 
@@ -11,6 +11,9 @@ from annotation_app.schemas.annotation import ItemAnnotation, PairAnnotation
 from annotation_app.schemas.manifest import PairManifest
 from annotation_app.storage.revision import next_revision
 from annotation_app.storage.s3 import S3Storage
+
+
+_JST = timezone(timedelta(hours=9), name="JST")
 
 
 def render() -> None:
@@ -68,7 +71,7 @@ def render() -> None:
                         "ペア ID": a.pair_id,
                         "状態": "完了" if a.status == "completed" else "下書き",
                         "有効性": ("有効" if a.pair_is_valid else "無効") if a.pair_is_valid is not None else "—",
-                        "最終更新": a.updated_at.strftime("%m/%d %H:%M"),
+                        "最終更新": a.updated_at.astimezone(_JST).strftime("%m/%d %H:%M"),
                     }
                     for a in worker_anns
                 ]

@@ -83,4 +83,7 @@ def render() -> None:
             invalid_reason.strip() if is_valid_label == "無効" else None
         )
         st.session_state.annotation = annotation
-        st.info("確定しました。 **「3. アクセント編集」** タブに進んでください。")
+        if annotation.pair_is_valid:
+            st.info("確定しました。 **「3. アクセント編集」** タブに進んでください。")
+        else:
+            st.info("無効として確定しました。 **「3. アクセント編集」** タブの下にある **「保存・提出」** から提出してください。")

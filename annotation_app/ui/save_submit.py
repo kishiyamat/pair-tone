@@ -60,7 +60,12 @@ def _save(annotation: PairAnnotation) -> None:
             storage = S3Storage()
             key = storage.save_annotation(annotation)
             storage.write_latest(annotation)
-            st.session_state["_save_message"] = ("info", f"提出が完了しました。(`{key}`)")
+            st.session_state["_save_message"] = (
+                "info",
+                "提出が完了しました。"
+                f"(`{key}`)\n\n"
+                "次のタスクをお願いします。すべて完了した場合は、完了報告をお願いします。",
+            )
             st.balloons()
         except Exception as e:
             st.session_state["_save_message"] = ("error", f"保存に失敗しました: {e}")
