@@ -8,15 +8,32 @@ from xml.sax.saxutils import escape
 _CLAUSE_SEP_RE = re.compile(r"、")
 _PHRASE_SEP_RE = re.compile(r"/")
 
+# フレーズ末尾の ' を検出する正規表現
+# OpenJTalk では末尾 ' は 0型（平板型）の区切りマーカーであり、アクセント下降点ではない
+_TRAILING_ACCENT_RE = re.compile(r"'$")
+
 
 def _phrase_to_ph(phrase: str) -> str:
-    """ph 属性用: _ (無声化マーク) を除去、' はそのまま保持.
+    """ph 属性用文字列を生成する.
 
-    / は呼び出し前に _PHRASE_SEP_RE で分割済みなので含まれない。
-    x-amazon-pron-kana は 1 phoneme タグ = 1 アクセント句を前提とするため、
-    / で分割して各フレーズを個別のタグにすることで ' を 1 つずつにする。
+    OpenJTalk の accent_kana フォーマットでは、アクセント句の末尾に付く '
+    は「このフレーズにはアクセント下降がない（0型 / 平板型）」を意味する
+    区切りマーカーである。Polly の x-amazon-pron-kana に末尾 ' を渡すと
+    「最終モーラの後で下降せよ」と誤解釈されるため、除去する。
+
+    一方、句の途中にある ' はアクセント核（下降開始点）を示すため保持する。
+
+    例:
+        "ハナ'シテ"     → "ハナ'シテ"   # 2モーラ目後下降 (2型)
+        "エンシュツオ'" → "エンシュツオ" # 平板型、末尾 ' を除去
+        "イタ'"         → "イタ"         # 平板型、末尾 ' を除去
+
+    他にも除去する文字:
+        _ (無声化マーク): Polly は認識しない
     """
-    return phrase.replace("_", "")
+    ph = phrase.replace("_", "")
+    ph = _TRAILING_ACCENT_RE.sub("", ph)
+    return ph
 
 
 def _phrase_to_text(phrase: str) -> str:
@@ -25,7 +42,7 @@ def _phrase_to_text(phrase: str) -> str:
     アクセント情報は ph 属性に持たせるため、テキストノードには ' / _ を含めない。
     例: "ハナ'_シ" → "ハナシ"  （cf. ph 属性では "ハナ'シ"）
     """
-    return phrase.replace("'", "").replace("\u2019", "").replace("_", "").replace("/", "")
+    return phrase.replace("'", "").replace("’", "").replace("_", "").replace("/", "")
 
 
 def _clause_to_phonemes(clause: str) -> str:
@@ -43,18 +60,33 @@ def _clause_to_phonemes(clause: str) -> str:
             continue
         ph = escape(_phrase_to_ph(phrase))
         text = escape(_phrase_to_text(phrase))
-        parts.append(f'<phoneme alphabet="x-amazon-pron-kana" ph="{ph}">{text}</phoneme>')
-    return "".join(parts)
+        parts.append(
+            f'<phoneme alphabet="x-amazon-pron-kana" ph="{ph}">{text}</phoneme>'
+        )
+    return "".join(parts)  # タグ間に空白なし → ポーズなし
 
 
 def accent_kana_to_ssml(accent_kana: str) -> str:
     """accent_kana を Polly 用 SSML 文書に変換する.
 
-    accent_kana 形式: "シュウマツニ'/メジロ'ダイニ/デカケタ'"
-    - `'` アクセント核マーカー
-    - `_` 無声化マーク（ph 属性では除去）
-    - `/`  → アクセント句境界（フレーズごとに別 phoneme タグ、空白なし）
-    - `、` → 節境界 + ポーズ (150ms)
+    accent_kana フォーマット (OpenJTalk 準拠):
+        サ'ッキマデ/ミナデ'/ア'_クションニ/ツ'イテ/ハナ'_シテ/イタ'
+
+    記号の意味と変換ルール:
+
+    | 記号 | 意味                                    | ph 属性での扱い           |
+    |------|-----------------------------------------|---------------------------|
+    | '    | アクセント核: 次のモーラから下降        | 保持                      |
+    | '    | フレーズ末尾のみ: 0型（下降なし）マーカ | 除去                      |
+    | _    | 無声化モーラ                            | 除去                      |
+    | /    | アクセント句境界（ポーズなし）           | 別 <phoneme> タグに分割   |
+    | 、   | 文節境界 + 150ms ポーズ                 | <break time="150ms"/> 挿入|
+
+    末尾 ' の除去について:
+        OpenJTalk では ' がフレーズの最終モーラの直後にある場合
+        （例: "イタ'" "エンシュツオ'"）は 0型（平板型）を意味する。
+        Polly の x-amazon-pron-kana に渡すと末尾下降と誤解釈されるため除去する。
+        句中の ' （例: "ハナ'シテ"）はアクセント核を示すため保持する。
 
     Returns:
         `<speak>` で囲まれた SSML 文字列

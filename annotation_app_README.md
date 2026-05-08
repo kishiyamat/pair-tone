@@ -370,17 +370,22 @@ Each phrase delimited by `/` or `、` must contain exactly one `'`.
 `accent_kana_to_ssml()` converts `accent_kana` to Polly SSML as follows:
 
 - `、` splits the string into separate `<phoneme>` tags separated by `<break time="150ms"/>`.
-- Within each `、`-clause, all `/`-phrases are merged into a single `<phoneme>` tag.
-- The `ph` attribute receives `'` markers but **not** `_` or `/`; Polly's `x-amazon-pron-kana` silently ignores any `<phoneme>` element whose `ph` contains `/`.
+- `/` splits an accent phrase into a separate `<phoneme>` tag with no whitespace between tags (no pause). Each tag contains exactly one `'` marker so Polly can interpret the accent correctly.
+- `_` (devoiced mora marker) is stripped from the `ph` attribute; Polly's `x-amazon-pron-kana` does not recognize it.
+- A trailing `'` at the end of a phrase (e.g. `イタ'`, `エンシュツオ'`) is stripped from the `ph` attribute. In OpenJTalk notation, a `'` immediately after the last mora of a phrase means flat/0-type accent (no pitch drop). Passing it to Polly would be misinterpreted as a drop at the final mora.
+- A mid-phrase `'` (e.g. `ハナ'シテ`) is an accent nucleus marker and is kept.
 - The text node inside `<phoneme>` is plain kana with `'`, `_`, and `/` all removed.
 
-Example output:
+Example input: `ハゲシ'イ/エンシュツオ'/フリカエリナ'ガラ、アクションニ/ツ'イテ`
 
 ```xml
 <speak><lang xml:lang="ja-JP">
-  <phoneme alphabet="x-amazon-pron-kana" ph="サ'ッキマデミナ'デ">サッキマデミナデ</phoneme>
+  <phoneme alphabet="x-amazon-pron-kana" ph="ハゲシ'イ">ハゲシイ</phoneme>
+  <phoneme alphabet="x-amazon-pron-kana" ph="エンシュツオ">エンシュツオ</phoneme>
+  <phoneme alphabet="x-amazon-pron-kana" ph="フリカエリナ'ガラ">フリカエリナガラ</phoneme>
   <break time="150ms"/>
-  <phoneme alphabet="x-amazon-pron-kana" ph="ア'クションニツ'イテハナ'シテイタ'">アクションニツイテハナシテイタ</phoneme>
+  <phoneme alphabet="x-amazon-pron-kana" ph="アクションニ">アクションニ</phoneme>
+  <phoneme alphabet="x-amazon-pron-kana" ph="ツ'イテ">ツイテ</phoneme>
 </lang></speak>
 ```
 
