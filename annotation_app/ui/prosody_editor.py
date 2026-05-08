@@ -6,7 +6,7 @@ import streamlit as st
 
 from annotation_app.schemas.annotation import ItemAnnotation, PairAnnotation
 from annotation_app.schemas.manifest import ManifestItem, PairManifest
-from annotation_app.ui.preview import render_preview_button
+from annotation_app.ui.preview import render_audio
 
 
 def render() -> None:
@@ -72,10 +72,9 @@ def render() -> None:
                     key=f"notes_{idx}",
                 )
 
-            preview_used = render_preview_button(
+            preview_used = render_audio(
                 accent_kana=accent_kana,
                 key_suffix=str(idx),
-                already_used=item_ann.preview_used,
             )
 
         updated_items.append(
