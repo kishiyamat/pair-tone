@@ -93,7 +93,7 @@ def _start_or_resume(worker_id: str, manifest: PairManifest) -> None:
         st.session_state.pair_manifest = manifest
         st.session_state.annotation = existing
         st.session_state.worker_id = worker_id
-        st.toast(f"リビジョン {existing.revision} を再開します。")
+        st.info(f"リビジョン {existing.revision} を再開します。")
     else:
         _start_new(worker_id, manifest)
 

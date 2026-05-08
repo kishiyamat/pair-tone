@@ -87,4 +87,4 @@ def render() -> None:
                 invalid_reason.strip() if is_valid_label == "無効" else None
             )
             st.session_state.annotation = annotation
-            st.toast("確定しました。次のタブへ進んでください。")
+            st.info("確定しました。**「2. アクセント編集」**タブに進んでください。")

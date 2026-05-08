@@ -63,9 +63,9 @@ def _save(annotation: PairAnnotation, *, submit: bool) -> None:
             if submit:
                 storage.write_latest(annotation)
             if submit:
-                st.success(f"提出が完了しました。(`{key}`)")
+                st.info(f"提出が完了しました。(`{key}`)")
                 st.balloons()
             else:
-                st.success(f"下書きを保存しました。(`{key}`)")
+                st.info(f"下書きを保存しました。(`{key}`)")
         except Exception as e:
             st.error(f"保存に失敗しました: {e}")
