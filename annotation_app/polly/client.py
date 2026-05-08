@@ -35,12 +35,3 @@ class PollyClient:
             VoiceId=voice_id,
         )
         return response["AudioStream"].read()  # type: ignore[no-any-return]
-        response = self._client.synthesize_speech(
-            Engine="standard",
-            LanguageCode="ja-JP",
-            OutputFormat="mp3",
-            Text=ssml,
-            TextType="ssml",
-            VoiceId=voice_id,
-        )
-        return response["AudioStream"].read()  # type: ignore[no-any-return]

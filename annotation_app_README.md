@@ -339,3 +339,81 @@ Optional:
 4. Build the Streamlit pair annotation screen.
 5. Implement S3 draft/save/submit flow.
 6. Add revision browsing and QA support.
+
+---
+
+## Implementation notes (as of 2026-05)
+
+### accent_kana format (replaces prosody_kana + prosody_pattern)
+
+The implemented annotation model uses a single `accent_kana` field instead of the two-layer `prosody_kana + prosody_pattern` design described above.
+
+`accent_kana` encodes reading, accent nucleus, phrase boundaries, devoicing, and pauses in one string:
+
+| Symbol | Meaning |
+|--------|---------|
+| `'` | Accent nucleus (high-to-low transition follows this mora) |
+| `/` | Accent phrase boundary (no pause) |
+| `_` | Devoiced mora |
+| `、` | Pause boundary (maps to 150 ms `<break>` in SSML) |
+
+Example:
+
+```
+サ'ッキマデ/ミナ'デ、ア'_クションニ/ツ'イテ/ハナ'_シテ/イタ'
+```
+
+Each phrase delimited by `/` or `、` must contain exactly one `'`.
+
+### Polly SSML conversion
+
+`accent_kana_to_ssml()` converts `accent_kana` to Polly SSML as follows:
+
+- `、` splits the string into separate `<phoneme>` tags separated by `<break time="150ms"/>`.
+- Within each `、`-clause, all `/`-phrases are merged into a single `<phoneme>` tag.
+- The `ph` attribute receives `'` markers but **not** `_` or `/`; Polly's `x-amazon-pron-kana` silently ignores any `<phoneme>` element whose `ph` contains `/`.
+- The text node inside `<phoneme>` is plain kana with `'`, `_`, and `/` all removed.
+
+Example output:
+
+```xml
+<speak><lang xml:lang="ja-JP">
+  <phoneme alphabet="x-amazon-pron-kana" ph="サ'ッキマデミナ'デ">サッキマデミナデ</phoneme>
+  <break time="150ms"/>
+  <phoneme alphabet="x-amazon-pron-kana" ph="ア'クションニツ'イテハナ'シテイタ'">アクションニツイテハナシテイタ</phoneme>
+</lang></speak>
+```
+
+### Tab layout
+
+The app uses four tabs (no step-by-step navigation):
+
+| Tab | Content |
+|-----|---------|
+| 0. ペア選択 | Worker ID + Pair ID form; annotation history per worker |
+| 1. 有効性チェック | Pair validity judgment |
+| 2. アクセント編集 | `accent_kana` editing with inline Polly preview |
+| 3. 保存・提出 | Draft save and final submission |
+
+### Worker annotation history
+
+Tab 0 shows a table of all annotations submitted by the entered Worker ID.
+This list is loaded from `annotations/worker_id={id}/` in S3 and shows pair ID, status, validity judgment, and last updated time.
+Clicking a row populates the Pair ID field for easy resumption.
+
+### S3 paths (actual)
+
+```text
+s3://BUCKET/{PREFIX}/
+  manifests/
+    pair_manifest.jsonl          # base batch
+    retry01/pair_manifest.jsonl  # additional batches (merged by pair_id)
+  annotations/
+    worker_id={safe_id}/
+      pair_id={safe_id}/
+        rev=0001.json
+  latest/
+    pair_id={safe_id}.json       # latest revision snapshot per pair
+```
+
+`safe_id` replaces `/` and `\` with `_`.

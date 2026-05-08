@@ -134,3 +134,40 @@ class S3Storage:
             if e.response["Error"]["Code"] in ("NoSuchKey", "404"):
                 return None
             raise
+
+    def list_worker_annotations(self, worker_id: str) -> list[PairAnnotation]:
+        """指定ワーカーの全アノテーション（ペアごとの最新リビジョン）を返す.
+
+        S3 パス: annotations/worker_id={worker_safe}/pair_id={pair_safe}/rev={rev}.json
+        ペアごとに最大リビジョンのファイルを読み込む。
+        updated_at 降順で返す。
+        """
+        worker_safe = self._safe_id(worker_id)
+        prefix = self._key(f"annotations/worker_id={worker_safe}/")
+
+        # pair_id フォルダ名 → 最新キー を収集（rev は zero-padded なので辞書順 = 数値順）
+        pair_latest: dict[str, str] = {}
+        paginator = self._s3.get_paginator("list_objects_v2")
+        for page in paginator.paginate(Bucket=self._bucket, Prefix=prefix):
+            for obj in page.get("Contents", []):
+                key: str = obj["Key"]
+                if not key.endswith(".json"):
+                    continue
+                parts = key.split("/")
+                pair_part = next((p for p in parts if p.startswith("pair_id=")), None)
+                if pair_part is None:
+                    continue
+                existing = pair_latest.get(pair_part)
+                if existing is None or key > existing:
+                    pair_latest[pair_part] = key
+
+        results: list[PairAnnotation] = []
+        for key in pair_latest.values():
+            try:
+                obj = self._s3.get_object(Bucket=self._bucket, Key=key)
+                data = orjson.loads(obj["Body"].read())
+                results.append(PairAnnotation.model_validate(data))
+            except Exception:
+                continue
+
+        return sorted(results, key=lambda a: a.updated_at, reverse=True)
