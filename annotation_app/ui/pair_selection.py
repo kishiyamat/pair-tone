@@ -22,27 +22,7 @@ def render() -> None:
     )
     st.divider()
 
-    # ── Worker ID ────────────────────────────────────────────
-    worker_id: str = st.text_input(
-        "Worker ID",
-        value=st.session_state.get("worker_id", os.environ.get("WORKER_ID", "")),
-        placeholder="例: cw_001",
-    )
-    st.session_state.worker_id = worker_id
-
-    if not worker_id:
-        st.warning("Worker ID を入力してください。")
-        return
-
-    # ── ペア ID 入力 ──────────────────────────────────────────
-    pair_id_input: str = st.text_input(
-        "ペア ID",
-        value=st.session_state.get("last_pair_id", ""),
-        placeholder="例: いち__しち",
-        help="アノテーションするペアの ID を直接入力してください。",
-    )
-
-    # マニフェストがまだ読み込まれていなければバックグラウンドで取得
+    # マニフェストはフォーム外で事前取得
     if not st.session_state.get("manifests"):
         with st.spinner("S3 からマニフェストを読み込んでいます..."):
             try:
@@ -55,23 +35,39 @@ def render() -> None:
     manifests: list[PairManifest] = st.session_state.manifests
     pair_id_map: dict[str, PairManifest] = {m.pair_id: m for m in manifests}
 
-    # 入力値を検証
-    manifest: PairManifest | None = None
-    if pair_id_input:
-        manifest = pair_id_map.get(pair_id_input)
-        if manifest is None:
-            st.warning(f"ペア ID `{pair_id_input}` が見つかりません。({len(manifests)} 件中)")
-        else:
-            st.success(
-                f"✓ ペア確認: **{manifest.word_a}** / **{manifest.word_b}**"
-                f"　({len(manifest.items)} 文)"
-            )
+    with st.form("pair_select_form"):
+        worker_id: str = st.text_input(
+            "Worker ID",
+            value=st.session_state.get("worker_id", os.environ.get("WORKER_ID", "")),
+            placeholder="例: cw_001",
+        )
+        pair_id_input: str = st.text_input(
+            "ペア ID",
+            value=st.session_state.get("last_pair_id", ""),
+            placeholder="例: いち__しち",
+            help="アノテーションするペアの ID を直接入力してください。",
+        )
+        submitted = st.form_submit_button("開始", type="primary")
 
-    # ── 開始ボタン ───────────────────────────────────────────
-    if st.button("開始", type="primary", disabled=manifest is None):
-        assert manifest is not None
-        st.session_state.last_pair_id = pair_id_input
-        _start_or_resume(worker_id, manifest)
+    if not submitted:
+        return
+
+    if not worker_id:
+        st.warning("Worker ID を入力してください。")
+        return
+
+    if not pair_id_input:
+        st.warning("ペア ID を入力してください。")
+        return
+
+    manifest: PairManifest | None = pair_id_map.get(pair_id_input)
+    if manifest is None:
+        st.warning(f"ペア ID `{pair_id_input}` が見つかりません。({len(manifests)} 件中)")
+        return
+
+    st.session_state.worker_id = worker_id
+    st.session_state.last_pair_id = pair_id_input
+    _start_or_resume(worker_id, manifest)
 
 
 def _start_or_resume(worker_id: str, manifest: PairManifest) -> None:
