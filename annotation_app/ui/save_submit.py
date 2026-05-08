@@ -33,11 +33,7 @@ def render() -> None:
 
     st.divider()
 
-    col_back, col_draft, col_submit = st.columns([1, 1, 4])
-    with col_back:
-        if st.button("戻る"):
-            st.session_state.step = "prosody" if annotation.pair_is_valid else "validity"
-            st.rerun()
+    col_draft, col_submit = st.columns([1, 4])
     with col_draft:
         if st.button("下書き保存"):
             _save(annotation, submit=False)

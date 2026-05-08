@@ -37,7 +37,7 @@ def render() -> None:
     annotation: PairAnnotation | None = st.session_state.get("annotation")
 
     if manifest is None or annotation is None:
-        st.error("ペアが選択されていません。")
+        st.info("「0. ペア選択」タブでペアを選択してください。")
         return
 
     st.subheader(f"ペア: {manifest.pair_id}")
@@ -170,12 +170,5 @@ def render() -> None:
     st.session_state.annotation = annotation
 
     st.divider()
-    col1, col2 = st.columns([1, 5])
-    with col1:
-        if st.button("戻る"):
-            st.session_state.step = "validity"
-            st.rerun()
-    with col2:
-        if st.button("保存・提出へ", type="primary", disabled=not all_filled):
-            st.session_state.step = "submit"
-            st.rerun()
+    if not all_filled:
+        st.warning("入力が完了していないフレーズがあります。全て入力完了後に「3. 保存・提出」タブから提出してください。")

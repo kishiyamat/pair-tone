@@ -89,12 +89,6 @@ def _start_or_resume(worker_id: str, manifest: PairManifest) -> None:
         st.session_state.annotation = existing
         st.session_state.worker_id = worker_id
         st.toast(f"リビジョン {existing.revision} を再開します。")
-        if existing.pair_is_valid is None:
-            st.session_state.step = "validity"
-        elif existing.pair_is_valid:
-            st.session_state.step = "prosody"
-        else:
-            st.session_state.step = "submit"
     else:
         _start_new(worker_id, manifest)
 
@@ -134,5 +128,4 @@ def _start_new(worker_id: str, manifest: PairManifest) -> None:
     st.session_state.pair_manifest = manifest
     st.session_state.annotation = annotation
     st.session_state.started_at = now
-    st.session_state.step = "validity"
     st.rerun()

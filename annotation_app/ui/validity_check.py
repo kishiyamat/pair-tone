@@ -15,10 +15,7 @@ def render() -> None:
     annotation: PairAnnotation | None = st.session_state.get("annotation")
 
     if manifest is None or annotation is None:
-        st.error("ペアが選択されていません。")
-        if st.button("ペア選択に戻る"):
-            st.session_state.step = "select"
-            st.rerun()
+        st.info("「0. ペア選択」タブでペアを選択してください。")
         return
 
     st.subheader(f"ペア: {manifest.pair_id}")
@@ -77,11 +74,9 @@ def render() -> None:
 
     col1, col2 = st.columns([1, 5])
     with col1:
-        if st.button("戻る"):
-            st.session_state.step = "select"
-            st.rerun()
+        pass  # タブで自由に移動できるため「戻る」ボタンは不要
     with col2:
-        next_label = "プロソディ編集へ" if is_valid_label == "有効" else "無効として提出画面へ"
+        next_label = "確定してアクセント編集へ" if is_valid_label == "有効" else "無効として確定"
         if st.button(next_label, type="primary"):
             if is_valid_label == "無効" and not invalid_reason.strip():
                 st.error("無効の場合は理由を入力してください。")
@@ -92,5 +87,4 @@ def render() -> None:
                 invalid_reason.strip() if is_valid_label == "無効" else None
             )
             st.session_state.annotation = annotation
-            st.session_state.step = "prosody" if annotation.pair_is_valid else "submit"
-            st.rerun()
+            st.toast("確定しました。次のタブへ進んでください。")

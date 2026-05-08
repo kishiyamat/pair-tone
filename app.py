@@ -13,7 +13,6 @@ st.set_page_config(page_title="Pair Annotation", layout="wide", page_icon="🎵"
 
 # ── セッション状態の初期化 ──────────────────────────────────────
 _DEFAULTS: dict[str, object] = {
-    "step": "select",
     "manifests": [],
     "pair_manifest": None,
     "annotation": None,
@@ -31,22 +30,8 @@ with st.sidebar:
     st.caption(f"Worker: {worker}")
     if st.session_state.pair_manifest is not None:
         st.caption(f"Pair: {st.session_state.pair_manifest.pair_id}")
-    st.divider()
 
-    _STEP_LABELS: dict[str, str] = {
-        "select": "0. ペア選択",
-        "validity": "1. 有効性チェック",
-        "prosody": "2. プロソディ編集",
-        "submit": "3. 保存・提出",
-    }
-    current_step: str = st.session_state.step
-    for _step, _label in _STEP_LABELS.items():
-        if _step == current_step:
-            st.markdown(f"**→ {_label}**")
-        else:
-            st.markdown(f"　　{_label}")
-
-# ── ステップルーティング ──────────────────────────────────────
+# ── タブルーティング ──────────────────────────────────────────
 from annotation_app.ui import (  # noqa: E402
     pair_selection,
     prosody_editor,
@@ -54,11 +39,22 @@ from annotation_app.ui import (  # noqa: E402
     validity_check,
 )
 
-if current_step == "select":
+tab0, tab1, tab2, tab3 = st.tabs([
+    "0. ペア選択",
+    "1. 有効性チェック",
+    "2. アクセント編集",
+    "3. 保存・提出",
+])
+
+with tab0:
     pair_selection.render()
-elif current_step == "validity":
+
+with tab1:
     validity_check.render()
-elif current_step == "prosody":
+
+with tab2:
     prosody_editor.render()
-elif current_step == "submit":
+
+with tab3:
     save_submit.render()
+
