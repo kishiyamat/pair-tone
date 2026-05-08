@@ -27,7 +27,7 @@ def render() -> None:
 
     if annotation.pair_is_valid:
         done_count = sum(
-            1 for it in annotation.items if it.prosody_kana and it.prosody_pattern
+            1 for it in annotation.items if it.accent_kana
         )
         st.markdown(f"**編集済み**: {done_count} / {len(annotation.items)} 文")
 

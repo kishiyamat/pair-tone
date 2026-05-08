@@ -16,8 +16,7 @@ class ItemAnnotation(BaseModel):
     target_word: str
     sentence: str
     is_natural_sentence: bool = True
-    prosody_kana: str = ""
-    prosody_pattern: str = ""
+    accent_kana: str = ""  # アクセント核マーカー ' 付きカナ (例: シュウマツニ'/メジロ'ダイニ/デカケタ')
     preview_used: bool = False
     notes: str = ""
 

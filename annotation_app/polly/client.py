@@ -5,7 +5,7 @@ from __future__ import annotations
 import boto3
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-from annotation_app.polly.ssml import prosody_to_ssml
+from annotation_app.polly.ssml import accent_kana_to_ssml
 
 
 class PollyClient:
@@ -21,12 +21,20 @@ class PollyClient:
     )
     def synthesize(
         self,
-        prosody_kana: str,
-        prosody_pattern: str,
+        accent_kana: str,
         voice_id: str = "Mizuki",
     ) -> bytes:
-        """prosody フィールドから MP3 音声バイト列を生成する."""
-        ssml = prosody_to_ssml(prosody_kana, prosody_pattern)
+        """accent_kana から MP3 音声バイト列を生成する."""
+        ssml = accent_kana_to_ssml(accent_kana)
+        response = self._client.synthesize_speech(
+            Engine="standard",
+            LanguageCode="ja-JP",
+            OutputFormat="mp3",
+            Text=ssml,
+            TextType="ssml",
+            VoiceId=voice_id,
+        )
+        return response["AudioStream"].read()  # type: ignore[no-any-return]
         response = self._client.synthesize_speech(
             Engine="standard",
             LanguageCode="ja-JP",

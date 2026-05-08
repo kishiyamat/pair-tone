@@ -121,9 +121,12 @@ def _start_new(worker_id: str, manifest: PairManifest) -> None:
                 condition_id=item.condition_id,
                 target_word=item.target_word,
                 sentence=item.sentence,
-                # OpenJTalk のアクセント核マーカー ' を除いた状態を初期値にする
-                prosody_kana=item.openjtalk_kana.replace("'", ""),
-                prosody_pattern="",
+                # corrected_kana があればそれを、なければ openjtalk_kana から ' を除いた値を初期値にする
+                accent_kana=(
+                    item.corrected_kana
+                    if item.corrected_kana
+                    else item.openjtalk_kana
+                ),
             )
             for item in manifest.items
         ],

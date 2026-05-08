@@ -8,8 +8,7 @@ from annotation_app.polly.client import PollyClient
 
 
 def render_preview_button(
-    prosody_kana: str,
-    prosody_pattern: str,
+    accent_kana: str,
     key_suffix: str,
     already_used: bool = False,
 ) -> bool:
@@ -18,14 +17,14 @@ def render_preview_button(
     if state_key not in st.session_state:
         st.session_state[state_key] = already_used
 
-    if not (prosody_kana and prosody_pattern):
+    if not accent_kana:
         return bool(st.session_state[state_key])
 
     if st.button("▶ Polly プレビュー", key=f"preview_btn_{key_suffix}"):
         with st.spinner("音声合成中..."):
             try:
                 client = PollyClient()
-                audio_bytes = client.synthesize(prosody_kana, prosody_pattern)
+                audio_bytes = client.synthesize(accent_kana)
                 st.audio(audio_bytes, format="audio/mp3")
                 st.session_state[state_key] = True
             except Exception as e:
