@@ -49,6 +49,15 @@ def render() -> None:
         )
         submitted = st.form_submit_button("開始", type="primary")
 
+    # ── 開始済みの場合: 現在のペアをアナウンス ────────────────
+    annotation = st.session_state.get("annotation")
+    manifest_loaded: PairManifest | None = st.session_state.get("pair_manifest")
+    if annotation is not None and manifest_loaded is not None:
+        st.success(
+            f"✅ **{manifest_loaded.word_a} / {manifest_loaded.word_b}** を開始しました。  \n"
+            "上の **「1. 有効性チェック」** タブに進んでください。"
+        )
+
     if not submitted:
         return
 
