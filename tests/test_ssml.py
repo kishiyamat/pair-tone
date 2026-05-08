@@ -28,9 +28,13 @@ class TestAccentKanaToSsml:
         # <phoneme ... ph="メジロ'">メジロ</phoneme> の形
         assert ">メジロ<" in ssml
 
-    def test_slash_produces_short_pause(self) -> None:
+    def test_slash_produces_no_pause(self) -> None:
+        # "/" はアクセント句境界のみ。Polly に break を挿入しない
         ssml = accent_kana_to_ssml("メジロ'/ダイニ'")
-        assert '<break time="200ms"/>' in ssml
+        assert '<break time="200ms"/>' not in ssml
+        assert "<break" not in ssml
+        # phoneme タグは 2 つ並ぶ
+        assert ssml.count("<phoneme") == 2
 
     def test_comma_produces_long_pause(self) -> None:
         ssml = accent_kana_to_ssml("メジロ'、ダイニ'")
@@ -39,7 +43,8 @@ class TestAccentKanaToSsml:
     def test_multiple_phrases(self) -> None:
         ssml = accent_kana_to_ssml("シュウマツニ'/メジロ'ダイニ/デカケタ'")
         assert ssml.count("<phoneme") == 3
-        assert ssml.count("<break") == 2
+        # "/" はbreak なし、breakタグは 0 個
+        assert "<break" not in ssml
 
     def test_underscore_stripped_from_ph(self) -> None:
         # _ は ph 属性から除去される

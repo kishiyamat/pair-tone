@@ -7,11 +7,6 @@ from xml.sax.saxutils import escape
 
 _SPLIT_RE = re.compile(r"([/、])")
 
-_PAUSE_MS: dict[str, str] = {
-    "/": "200ms",
-    "、": "500ms",
-}
-
 
 def _phrase_to_ph(phrase: str) -> str:
     """ph 属性用文字列を生成する: _ (無声化マーク) を除去し ' はそのまま保持."""
@@ -29,7 +24,7 @@ def accent_kana_to_ssml(accent_kana: str) -> str:
     accent_kana 形式: "シュウマツニ'/メジロ'ダイニ/デカケタ'"
     - ``'`` アクセント核マーカー（Polly の x-amazon-pron-kana に直接渡す）
     - ``_`` 無声化マーク（ph 属性では除去）
-    - ``/``  → 短ポーズ (200ms)
+    - ``/``  → アクセント句境界（ポーズなし、phoneme タグを隣接させるだけ）
     - ``、`` → 長ポーズ (500ms)
 
     Returns:
@@ -48,8 +43,10 @@ def accent_kana_to_ssml(accent_kana: str) -> str:
                 f'<phoneme alphabet="x-amazon-pron-kana" ph="{ph}">{text}</phoneme>'
             )
         if i < len(separators):
-            pause_ms = _PAUSE_MS.get(separators[i], "200ms")
-            fragments.append(f'<break time="{pause_ms}"/>')
+            sep = separators[i]
+            if sep == "、":
+                fragments.append('<break time="500ms"/>')
+            # "/" はポーズなし: phoneme タグを並べるだけ
 
     inner = "".join(fragments)
     return f'<speak><lang xml:lang="ja-JP">{inner}</lang></speak>'
