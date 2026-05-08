@@ -15,8 +15,14 @@ from annotation_app.storage.s3 import S3Storage
 
 def render() -> None:
     st.title("0. ペア選択")
+    st.markdown(
+        "**作業の流れ:**  \n"
+        "1. Worker ID とアノテーション対象のペア ID を入力してください。  \n"
+        "2. 「開始」を押すと、既存のアノテーションがあれば再開、なければ新規作成します。"
+    )
+    st.divider()
 
-    # Worker ID 入力
+    # ── Worker ID ────────────────────────────────────────────
     worker_id: str = st.text_input(
         "Worker ID",
         value=st.session_state.get("worker_id", os.environ.get("WORKER_ID", "")),
@@ -28,47 +34,71 @@ def render() -> None:
         st.warning("Worker ID を入力してください。")
         return
 
-    # マニフェスト読み込み
-    if st.button("S3 からマニフェストを読み込む"):
-        with st.spinner("読み込み中..."):
+    # ── ペア ID 入力 ──────────────────────────────────────────
+    pair_id_input: str = st.text_input(
+        "ペア ID",
+        value=st.session_state.get("last_pair_id", ""),
+        placeholder="例: いち__しち",
+        help="アノテーションするペアの ID を直接入力してください。",
+    )
+
+    # マニフェストがまだ読み込まれていなければバックグラウンドで取得
+    if not st.session_state.get("manifests"):
+        with st.spinner("S3 からマニフェストを読み込んでいます..."):
             try:
                 storage = S3Storage()
-                manifests = storage.load_manifests()
-                st.session_state.manifests = manifests
-                st.success(f"{len(manifests)} 件のペアを読み込みました。")
+                st.session_state.manifests = storage.load_manifests()
             except Exception as e:
-                st.error(f"読み込みに失敗しました: {e}")
+                st.error(f"マニフェストの読み込みに失敗しました: {e}")
                 return
 
-    manifests: list[PairManifest] = st.session_state.get("manifests", [])
-    if not manifests:
-        st.info("マニフェストを読み込んでください。")
-        return
+    manifests: list[PairManifest] = st.session_state.manifests
+    pair_id_map: dict[str, PairManifest] = {m.pair_id: m for m in manifests}
 
-    pair_ids = [m.pair_id for m in manifests]
-    selected_id: str | None = st.selectbox("ペアを選択", pair_ids)
-    if selected_id is None:
-        return
+    # 入力値を検証
+    manifest: PairManifest | None = None
+    if pair_id_input:
+        manifest = pair_id_map.get(pair_id_input)
+        if manifest is None:
+            st.warning(f"ペア ID `{pair_id_input}` が見つかりません。({len(manifests)} 件中)")
+        else:
+            st.success(
+                f"✓ ペア確認: **{manifest.word_a}** / **{manifest.word_b}**"
+                f"　({len(manifest.items)} 文)"
+            )
 
-    manifest = next(m for m in manifests if m.pair_id == selected_id)
+    # ── 開始ボタン ───────────────────────────────────────────
+    if st.button("開始", type="primary", disabled=manifest is None):
+        assert manifest is not None
+        st.session_state.last_pair_id = pair_id_input
+        _start_or_resume(worker_id, manifest)
 
-    with st.expander("ペア詳細"):
-        st.json(
-            {
-                "pair_id": manifest.pair_id,
-                "word_a": manifest.word_a,
-                "word_b": manifest.word_b,
-                "item_count": len(manifest.items),
-            }
-        )
 
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("新規アノテーション開始", type="primary"):
-            _start_new(worker_id, manifest)
-    with col2:
-        if st.button("最新リビジョンを再開"):
-            _resume_latest(worker_id, manifest)
+def _start_or_resume(worker_id: str, manifest: PairManifest) -> None:
+    """既存アノテーションがあれば再開、なければ新規作成する."""
+    with st.spinner("確認中..."):
+        try:
+            storage = S3Storage()
+            existing = storage.load_latest_annotation(manifest.pair_id)
+        except Exception as e:
+            st.error(f"S3 の確認に失敗しました: {e}")
+            return
+
+    if existing is not None:
+        st.session_state.pair_manifest = manifest
+        st.session_state.annotation = existing
+        st.session_state.worker_id = worker_id
+        st.toast(f"リビジョン {existing.revision} を再開します。")
+        if existing.pair_is_valid is None:
+            st.session_state.step = "validity"
+        elif existing.pair_is_valid:
+            st.session_state.step = "prosody"
+        else:
+            st.session_state.step = "submit"
+    else:
+        _start_new(worker_id, manifest)
+
+    st.rerun()
 
 
 def _start_new(worker_id: str, manifest: PairManifest) -> None:
@@ -102,30 +132,4 @@ def _start_new(worker_id: str, manifest: PairManifest) -> None:
     st.session_state.annotation = annotation
     st.session_state.started_at = now
     st.session_state.step = "validity"
-    st.rerun()
-
-
-def _resume_latest(worker_id: str, manifest: PairManifest) -> None:
-    try:
-        storage = S3Storage()
-        annotation = storage.load_latest_annotation(manifest.pair_id)
-    except Exception as e:
-        st.error(f"読み込みに失敗しました: {e}")
-        return
-
-    if annotation is None:
-        st.warning("既存のアノテーションが見つかりません。新規開始してください。")
-        return
-
-    st.session_state.pair_manifest = manifest
-    st.session_state.annotation = annotation
-    st.session_state.worker_id = worker_id
-
-    if annotation.pair_is_valid is None:
-        st.session_state.step = "validity"
-    elif annotation.pair_is_valid:
-        st.session_state.step = "prosody"
-    else:
-        st.session_state.step = "submit"
-
     st.rerun()
