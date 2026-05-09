@@ -141,7 +141,7 @@ def _render_item_editor(
 
 
 def render() -> None:
-    st.title("3. アクセント編集")
+    st.markdown("### 3. アクセント編集")
 
     manifest: PairManifest | None = st.session_state.get("pair_manifest")
     annotation: PairAnnotation | None = st.session_state.get("annotation")
@@ -150,7 +150,7 @@ def render() -> None:
         st.info("「1. ペア選択」タブでペアを選択してください。")
         return
 
-    st.subheader(f"ペア: {manifest.pair_id}")
+    st.markdown(f"#### ペア: {manifest.pair_id}")
     st.info(
         "`a-b`、`c-d`、`e-f`、`g-h` はペアです。"
         "できるだけ似た句読点の付け方にしてください。"

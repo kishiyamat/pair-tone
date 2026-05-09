@@ -9,7 +9,7 @@ from annotation_app.schemas.manifest import PairManifest
 
 
 def render() -> None:
-    st.title("2. ペア有効性チェック")
+    st.markdown("### 2. ペア有効性チェック")
 
     manifest: PairManifest | None = st.session_state.get("pair_manifest")
     annotation: PairAnnotation | None = st.session_state.get("annotation")
@@ -18,7 +18,7 @@ def render() -> None:
         st.info("「1. ペア選択」タブでペアを選択してください。")
         return
 
-    st.subheader(f"ペア: {manifest.pair_id}")
+    st.markdown(f"#### ペア: {manifest.pair_id}")
     st.markdown(
         f"**ターゲット語 A**: {manifest.word_a}　"
         f"**ターゲット語 B**: {manifest.word_b}"

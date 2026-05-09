@@ -17,7 +17,7 @@ _JST = timezone(timedelta(hours=9), name="JST")
 
 
 def render() -> None:
-    st.title("1. ペア選択")
+    st.markdown("### 1. ペア選択")
     st.markdown(
         "**作業の流れ:**  \n"
         "1. Worker ID とアノテーション対象のペア ID を入力してください。  \n"

@@ -17,7 +17,7 @@ def render() -> None:
         return
 
     st.subheader("保存・提出")
-    st.subheader(f"ペア: {annotation.pair_id}")
+    st.markdown(f"#### ペア: {annotation.pair_id}")
 
     # サマリー表示
     validity_label = "✓ 有効" if annotation.pair_is_valid else "✗ 無効"
