@@ -61,9 +61,10 @@ def render() -> None:
             worker_anns = storage.list_worker_annotations(display_worker_id)
             total = len(manifests)
             done = sum(1 for a in worker_anns if a.status == "completed")
+            valid_true = sum(1 for a in worker_anns if a.pair_is_valid is True)
             st.info(
                 f"**{display_worker_id}** 様の実績: "
-                f"完了 **{done}** 件（全 {total} ペア中）"
+                f"完了 **{done}** 件 / 有効 **{valid_true}** 件（全 {total} ペア中）"
             )
             if worker_anns:
                 rows = [
