@@ -2,7 +2,7 @@
 name = "pair-tone"
 version = "0.1.0"
 description = "Annotation app for Japanese mishearing stimulus pairs"
-readme = "annotation_app_README.md"
+readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "streamlit>=1.35",
