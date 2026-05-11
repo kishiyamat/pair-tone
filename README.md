@@ -273,6 +273,27 @@ uv run python scripts/export_annotated_manifest.py data/pair_manifest.jsonl data
 
 This command reads the original manifest JSONL, fetches latest annotation records from S3, and writes an updated JSONL.
 
+In normal operation, use the `make` target so that the output file name automatically gets a timestamp and the original JSONL is not overwritten.
+
+```bash
+make export-manifest FILE=data/pair_manifest.jsonl
+make export-manifest FILE=data/retry01/pair_manifest.jsonl
+```
+
+After export, copy the generated files into the corpus repository.
+
+```bash
+cp data/pair_manifest.annotated.TIMESTAMP.jsonl ~/mishearing-corpus/resource/emnlp2026/
+cp data/retry01/pair_manifest.annotated.TIMESTAMP.jsonl ~/mishearing-corpus/resource/emnlp2026/retries/retry01/
+```
+
+Example:
+
+```bash
+cp data/pair_manifest.annotated.20260511-135458.jsonl ~/mishearing-corpus/resource/emnlp2026/
+cp data/retry01/pair_manifest.annotated.20260511-135502.jsonl ~/mishearing-corpus/resource/emnlp2026/retries/retry01/
+```
+
 ## Validation rules
 
 ### Pair-level rules
