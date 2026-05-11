@@ -265,6 +265,10 @@ This separation keeps the interactive annotation app simple and keeps corpus pat
 
 Important: `item_id` alone is not assumed to be globally unique across all pair manifests. The merge/export step therefore matches items by `pair_id + item_id`.
 
+Important: the export step reads S3 `latest/` snapshots, so the last saved annotation for each `pair_id` is the one that gets merged.
+
+Only annotations with `status == completed` and `pair_is_valid == true` are reflected back into the output JSONL. Drafts and invalid pairs are ignored during export.
+
 Current helper command:
 
 ```bash
