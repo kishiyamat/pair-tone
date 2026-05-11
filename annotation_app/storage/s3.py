@@ -135,6 +135,24 @@ class S3Storage:
                 return None
             raise
 
+    def list_latest_annotations(self) -> list[PairAnnotation]:
+        """latest/ 配下の最新アノテーションをすべて返す."""
+        prefix = self._key("latest/")
+        results: list[PairAnnotation] = []
+        paginator = self._s3.get_paginator("list_objects_v2")
+        for page in paginator.paginate(Bucket=self._bucket, Prefix=prefix):
+            for obj in page.get("Contents", []):
+                key: str = obj["Key"]
+                if not key.endswith(".json"):
+                    continue
+                try:
+                    response = self._s3.get_object(Bucket=self._bucket, Key=key)
+                    data = orjson.loads(response["Body"].read())
+                    results.append(PairAnnotation.model_validate(data))
+                except Exception:
+                    continue
+        return sorted(results, key=lambda a: a.updated_at, reverse=True)
+
     def list_worker_annotations(self, worker_id: str) -> list[PairAnnotation]:
         """指定ワーカーの全アノテーション（ペアごとの最新リビジョン）を返す.
 
